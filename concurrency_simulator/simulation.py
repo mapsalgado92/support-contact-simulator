@@ -23,10 +23,10 @@ class Simulation:
         self.waiting = list() # of Contacts
         self.events = list() # of Events
         #Outputs
-        self.handled = list()
-        self.missed = list()
+        self.handled = list() # of Contacts
+        self.missed = list() # of Contacts
         #Accumulators
-        self.lines_acc = 0
+        self.lines_acc = list()
         self.handling_time_acc = 0
 
     # Reset
@@ -35,7 +35,7 @@ class Simulation:
         self.events = []
         self.current = 0
         self.chain_position = 0
-        self.lines_acc = 0
+        self.lines_acc = list()
         self.volumes_acc = 0
         self.handled = []
         self.missed = []
@@ -53,7 +53,7 @@ class Simulation:
         return [r.to_dict() for r in self.waiting]
     
     def get_agent_time(self) -> float:
-        return self.lines_acc * (self.interval)/ self.max_concurrency
+        return np.sum(self.lines_acc) * (self.interval)/ self.max_concurrency
     
     def get_handling_times(self) -> float:
         return self.handling_time_acc
@@ -171,7 +171,7 @@ class Simulation:
                     self._handle_next_waiting(next_event.time,lines)
     
         self.chain_position += 1
-        self.lines_acc += lines
+        self.lines_acc.append(lines)
         
     #SIMULATION ITERATORS
     def coverage_test(self, volumes:dict, lines:int, intervals:int=10) -> None:
