@@ -31,8 +31,8 @@ class AgentSimulation:
     # Reset
     def reset_simulation(self):
         self.waiting = EventQueue(fifo=True)
-        self.handling_queue = EventQueue(fifo=True)
-        self.arrival_queue = EventQueue(fifo=True)
+        self.handling_queue = EventQueue(fifo=False)
+        self.arrival_queue = EventQueue(fifo=False)
         self.handled_contacts = []
         self.missed_contacts = []
 
@@ -109,7 +109,7 @@ class AgentSimulation:
         #Extract Event and Contact
         event = self.arrival_queue.get_next_event()
         present = event.time
-        print("Process Arrival at",present)
+        print("Process Arrival at",present, event.item)
         contact = event.item
         ct = contact.contact_type
         ct_aht = self.contact_types.get(ct)
@@ -193,11 +193,13 @@ class AgentSimulation:
         elif type == 'agent-in':
             agent.enable_lines(time=present)
             #Check Waiting
-            self._check_waiting(agent, present+0.001)
+            self._check_waiting(agent, present)
     
     def _check_waiting(self, agent:Agent, present:int)->None:
-        for line in agent.lines:
-                if (!line.is_occupied) & line.open & ((line.max_occ > agent.occupied_lines) if line.max_occ else True):
+        lines = [*agent.lines]
+        random.shuffle(lines)
+        for line in sorted(lines, key=lambda l:l.priority):
+                if (agent.disabled==False) & (line.is_occupied == False) & line.open & ((line.max_occ > agent.occupied_lines) if line.max_occ else True):
                     cond = lambda e: e.item.contact_type  in line.contact_types
                     waiting_event = self.waiting_queue.get_cond_next_event(cond)
                     if bool(waiting_event):
@@ -219,10 +221,10 @@ class AgentSimulation:
                             l.contact.update_handling(present, factor, conc)
 
                         #Occypy Line
-                        occupied_line = agent.occupy_line(contact)
+                        occupied_line = agent.occupy_line(contact,specific_line=line)
             
                         #Add line to Handling Queue
-                        handling_event = Event(occupied_line,'handling', time_callback=lambda l: round(l.contact.end_at,2))
+                        handling_event = Event(line,'handling', time_callback=lambda l: round(l.contact.end_at,2))
                         self.handling_queue.add_event(handling_event)
     
 
@@ -310,7 +312,7 @@ class AgentSimulation:
         arrival_queue.sort()
         return arrival_queue
 
-    def add_agents(self, blueprint:dict, num_agents:int=1, performance_callback = lambda:1):
+    def add_agents(self, blueprint:list, num_agents:int=1, performance_callback = lambda:1):
         for _ in range(num_agents):
             self.agent_pool.add_agent(Agent(blueprint, performance_factor=performance_callback()))
         return self.agent_pool

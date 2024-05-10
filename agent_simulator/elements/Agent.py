@@ -1,4 +1,5 @@
 import uuid
+import random
 from .Line import Line
 from .Contact import Contact
 from typing import List
@@ -29,11 +30,13 @@ class Agent:
             lines.extend([Line( contact_types,lambda: self , priority, max_occ) for _ in range(num_lines)])
         return lines
 
-    def occupy_line(self, contact:Contact)->Line:
+    def occupy_line(self, contact:Contact, specific_line:Line = None)->Line:
         self.occupied_lines += 1
-        ct = contact.contact_type
-        avail_lines = [line for line in self.lines if (line.is_occupied == False) & (ct in line.contact_types)]
-        selected_line = max(avail_lines, key = lambda l: l.priority)
+        selected_line = specific_line
+        if(specific_line == None):
+            ct = contact.contact_type
+            avail_lines = [line for line in self.lines if (line.is_occupied == False) & (ct in line.contact_types)]
+            selected_line = min(avail_lines, key = lambda l: l.priority) 
         selected_line.occupy(contact)
         return selected_line
     

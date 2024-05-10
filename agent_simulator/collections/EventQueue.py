@@ -32,7 +32,7 @@ class EventQueue:
             self.events.remove(next)
             return next
         else:
-            print("EventQueue | Can't get next conditional element.")
+            #print("EventQueue | Can't get next conditional element.")
             return None
 
     def sort(self) -> None:

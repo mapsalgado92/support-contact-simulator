@@ -46,6 +46,7 @@ class Contact:
     
     def update_handling(self, present:float, factor:float, new_concurrency:int)->"Contact":
         handling_end = self.arrival + self.waiting_time + self.handling_time
+    
         if present > handling_end:
             print("Contact | Contact handling ends in the past.")
         else:
