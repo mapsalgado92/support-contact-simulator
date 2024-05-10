@@ -2,6 +2,7 @@ from agent_simulator.elements.Event import Event
 from agent_simulator.elements.Contact import Contact
 from agent_simulator.elements.Line import Line
 from agent_simulator.elements.Agent import Agent
+from agent_simulator.elements.Log import Log 
 
 from agent_simulator.collections.AgentPool import AgentPool
 from agent_simulator.collections.EventQueue import EventQueue
@@ -27,6 +28,8 @@ class AgentSimulation:
         #Outputs
         self.handled_contacts = list() # of Contacts
         self.missed_contacts = list() # of Contacts
+        self.simulation_log = None
+        
 
     # Reset
     def reset_simulation(self):
@@ -89,9 +92,23 @@ class AgentSimulation:
     
     ### MAIN PROCESS: SIMULATE NEXT
     def simulate(self):
+        self.simulation_log = Log({
+            'contact_types': self.contact_types,
+            'agent_pool': self.agent_pool
+        })
+
+        
+        self.simulation_log.log_action(
+            time = 0, 
+            action = 'simulation_started', 
+            item_type = 'simulation', 
+            item_id = f'sim-{self.simulation_log.simulation_timestamp}'
+        )
+
+        #self.simulation_log.log_action(time = xxx, action = 'xxx', item_type = 'xxx', item_id = xxx))
+        
         while(1):
             queues = (self.agent_io_queue, self.arrival_queue, self.handling_queue)
-            print('(AGENT-IO,ARRIVAL,HANDLING) ->', queues)
         
             next_queue = min(queues, key=lambda q: q.next.time if q.next else float('inf') )
             event = next_queue.next
@@ -103,6 +120,14 @@ class AgentSimulation:
                 self._process_handling()
             else:
                 self._process_agent_io()
+
+        self.simulation_log.log_action(
+            time = 0, 
+            action = 'simulation_ended', 
+            item_type = 'simulation', 
+            item_id = f'sim-{self.simulation_log.simulation_timestamp}'
+        )
+
 
     ### SUB PROCESS: ARRIVAL
     def _process_arrival(self):
@@ -116,6 +141,8 @@ class AgentSimulation:
         
         #Find Agent and Line
         agent = self.agent_pool.find_best_avail_agent(ct)
+
+        self.simulation_log.log_action(time = present, action = 'arrival', item_type = 'contact', item_id = contact.id)
         
         if agent:
             #Materialise Handling
@@ -124,6 +151,9 @@ class AgentSimulation:
             aht = agent.performance_factor * (ct_aht.get('base') + (conc - 1) * ct_aht.get('increment'))
             contact.materialise_handling(start, aht, conc)
             
+            self.simulation_log.log_action(time = present, action = 'materialised_handling', item_type = 'contact', item_id = contact.id)
+            self.simulation_log.log_action(time = present, action = 'agent_line_occupied', item_type = 'agent', item_id = agent.id)
+            
             #Update Handling
             old_aht = ct_aht.get('base') + (agent.occupied_lines - 1) * ct_aht.get('increment')
             new_aht = ct_aht.get('base') + (conc - 1) * ct_aht.get('increment')
@@ -131,6 +161,7 @@ class AgentSimulation:
             lines_to_update = agent.get_occupied_lines()
             for l in lines_to_update:
                 l.contact.update_handling(present, factor, conc)
+                self.simulation_log.log_action(time = present, action = 'updated_handling', item_type = 'contact', item_id = l.contact.id)
             
             #Occypy Line
             occupied_line = agent.occupy_line(contact)
@@ -143,6 +174,7 @@ class AgentSimulation:
             print("Contact Waiting...")
             waiting_event = Event(contact,'waiting')
             self.waiting_queue.add_event(waiting_event)
+            self.simulation_log.log_action(time = present, action = 'contact_waiting', item_type = 'contact', item_id = contact.id)
 
     ### SUB PROCESS: HANDLING
     def _process_handling(self)->None:
@@ -161,7 +193,9 @@ class AgentSimulation:
         
         #Add Contact to Handled Contacts
         self.handled_contacts.append({'contact':contact,'agent':agent,'solved_at': present})
-
+        self.simulation_log.log_action(time = present, action = 'contact_handled', item_type = 'contact', item_id = contact.id)
+        self.simulation_log.log_action(time = present, action = 'agent_line_freed', item_type = 'agent', item_id = agent.id)
+        
         #Update Handling
         conc = agent.occupied_lines
         old_aht = ct_aht.get('base') + (agent.occupied_lines) * ct_aht.get('increment')
@@ -170,6 +204,7 @@ class AgentSimulation:
         lines_to_update = agent.get_occupied_lines()
         for l in lines_to_update:
                 l.contact.update_handling(present, factor, conc)
+                self.simulation_log.log_action(time = present, action = 'updated_handling', item_type = 'contact', item_id = l.contact.id)
 
         self._check_waiting(agent, present)
     
@@ -188,16 +223,19 @@ class AgentSimulation:
         #Process Agent Out
         if type == 'agent-out':
             agent.disable_lines()
+            self.simulation_log.log_action(time = present, action = 'agent_out', item_type = 'agent', item_id = agent.id)
         
         #Process Agent In
         elif type == 'agent-in':
             agent.enable_lines(time=present)
+            self.simulation_log.log_action(time = present, action = 'agent_in', item_type = 'agent', item_id = agent.id)
             #Check Waiting
             self._check_waiting(agent, present)
     
     def _check_waiting(self, agent:Agent, present:int)->None:
         lines = [*agent.lines]
         random.shuffle(lines)
+        self.simulation_log.log_action(time = present, action = 'check_waiting_queue', item_type = 'agent', item_id = agent.id)
         for line in sorted(lines, key=lambda l:l.priority):
                 if (agent.disabled==False) & (line.is_occupied == False) & line.open & ((line.max_occ > agent.occupied_lines) if line.max_occ else True):
                     cond = lambda e: e.item.contact_type  in line.contact_types
@@ -211,6 +249,20 @@ class AgentSimulation:
                         start = present
                         aht = agent.performance_factor * (ct_aht.get('base') + (conc - 1) * ct_aht.get('increment'))
                         contact.materialise_handling(start, aht, conc)
+
+                        self.simulation_log.log_action(
+                            time = present, 
+                            action = 'materialised_handling', 
+                            item_type = 'contact', 
+                            item_id = contact.id
+                        )
+                        
+                        self.simulation_log.log_action(
+                            time = present, 
+                            action = 'agent_line_occupied', 
+                            item_type = 'agent', 
+                            item_id = agent.id
+                        )
                         
                         #Update Handling
                         old_aht = ct_aht.get('base') + (agent.occupied_lines - 1) * ct_aht.get('increment')
@@ -219,6 +271,7 @@ class AgentSimulation:
                         lines_to_update = agent.get_occupied_lines()
                         for l in lines_to_update:
                             l.contact.update_handling(present, factor, conc)
+                            self.simulation_log.log_action(time = present, action = 'updated_handling', item_type = 'contact', item_id = l.contact.id)
 
                         #Occypy Line
                         occupied_line = agent.occupy_line(contact,specific_line=line)

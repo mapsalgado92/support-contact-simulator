@@ -13,6 +13,7 @@ class Agent:
         max_occ:int = None
     ) -> None:
         self.id = str(uuid.uuid4())
+        self.blueprint = blueprint
         self.performance_factor = performance_factor
         self.occupied_lines = 0
         self.lines = self._create_lines(blueprint)
