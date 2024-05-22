@@ -10,9 +10,11 @@ class Agent:
         self,
         blueprint:List[dict] = {'num_lines': 1, 'contact_types': ['basic'], 'priority':1, 'max_occ':None},
         performance_factor:float = 1.0,
-        max_occ:int = None
+        max_occ:int = None,
+        alias:str = None
     ) -> None:
         self.id = str(uuid.uuid4())
+        self.alias = alias
         self.blueprint = blueprint
         self.performance_factor = performance_factor
         self.occupied_lines = 0
@@ -84,7 +86,7 @@ class Agent:
         return [line for line in self.lines if line.is_occupied]
             
     def __repr__(self):
-        return f"Agent(availability={self.get_availability()})"
+        return f"Agent(availability={self.get_availability()}{f', alias={self.alias}' if self.alias else ''})"
 
     
     

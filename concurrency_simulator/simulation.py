@@ -150,7 +150,7 @@ class Simulation:
                 self._handle_next_waiting(self.chain_position * self.interval ,lines)
         
         # Generate All Contacts & Events
-        new_events = self._generate_events_list(volumes)  
+        new_events = self._generate_events_list(volumes)
         self.events = [*self.events, *new_events]
 
         #Iterate Through All Events
