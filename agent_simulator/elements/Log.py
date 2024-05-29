@@ -17,7 +17,7 @@ class Log:
 
     @property
     def length(self) -> int:
-        return len(self.event_log)
+        return len(self.log)
 
     def __repr__(self):
         return f"Log(length={self.length})"

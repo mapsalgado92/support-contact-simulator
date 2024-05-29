@@ -47,8 +47,8 @@ class Contact:
     def update_handling(self, present:float, factor:float, new_concurrency:int)->"Contact":
         handling_end = self.arrival + self.waiting_time + self.handling_time
     
-        if present > handling_end:
-            print("Contact | Contact handling ends in the past.")
+        if round(present) > round(handling_end):
+            print(f"Contact | Contact handling ends in the past (before {present}) -> ", self)
         else:
             remaining_time = handling_end - present
             new_remaining_time = remaining_time * factor 
@@ -58,6 +58,11 @@ class Contact:
 
     def get_current_concurrency(self)->"Contact":
         return self.concurrency_history[-1]
+
+    def check_missed(self, present) -> bool:
+        waiting_time =  present - self.arrival
+        return (waiting_time > self.patience) | (waiting_time > self.auto_solve_time)
+        
         
     
     #PROPERTIES   
