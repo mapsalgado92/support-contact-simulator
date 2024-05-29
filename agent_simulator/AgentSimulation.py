@@ -254,6 +254,8 @@ class AgentSimulation:
                         #CHECK IF MISSED
                         if contact.check_missed(present):
                             contact.materialise_handling(present, None, None)
+                            #Add Contact to Missed Contacts
+                            self.missed_contacts.append({'contact':contact, 'missed_at': contact.arrival + contact.waiting_time})
                             self.simulation_log.log_action(
                                 time = contact.arrival + contact.waiting_time, 
                                 action = 'contact_missed', 
