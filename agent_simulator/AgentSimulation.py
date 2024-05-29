@@ -425,7 +425,12 @@ class AgentSimulation:
         self.reset_simulation()
         self.generate_basic_io(ios=ios, wrapup=wrapup, set=True)
         for ct in volumes:
-            self.add_arrivals([volumes[ct] for _ in range(intervals)], contact_type=ct)
+            self.add_arrivals(
+                volumes=[volumes[ct] for _ in range(intervals)],
+                contact_type=ct,
+                wrapup=wrapup,
+                interval=int_length
+            )
             
         return self.simulate()
 
