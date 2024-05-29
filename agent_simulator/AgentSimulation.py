@@ -428,7 +428,6 @@ class AgentSimulation:
             self.add_arrivals(
                 volumes=[volumes[ct] for _ in range(intervals)],
                 contact_type=ct,
-                wrapup=wrapup,
                 interval=int_length
             )
             
