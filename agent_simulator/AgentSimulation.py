@@ -260,7 +260,6 @@ class AgentSimulation:
                                 item_type = 'contact', 
                                 item_id = contact.id
                             )
-                            print('MISSED TICKET')
                             #...and check waiting queue again
                         else:
                             #Materialise Handling
